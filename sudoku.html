@@ -80,7 +80,8 @@
 <body>
 
     <div class="inputContainer">
-        <textarea id="inputPuzzle" placeholder="Enter the initial puzzle as a 9x9 grid with 0 for empty cells, separated by commas.&#10;e.g. 5,3,0,0,7,0,0,0,0,&#10;6,0,0,1,9,5,0,0,0,..."></textarea>
+        <input type="number" id="gridSize" placeholder="Enter grid size (n)" />
+        <textarea id="inputPuzzle" placeholder="Enter the initial puzzle as an nxn grid with 0 for empty cells, separated by commas.&#10;e.g. 5,3,0,0,7,0,0,0,0,&#10;6,0,0,1,9,5,0,0,0,..."></textarea>
         <button id="generateButton">Generate Puzzle</button>
     </div>
 
@@ -95,31 +96,32 @@
         document.addEventListener("DOMContentLoaded", function () {
             const container = document.getElementById("container");
             const inputPuzzle = document.getElementById("inputPuzzle");
+            const gridSizeInput = document.getElementById("gridSize");
 
-            function generatePuzzleFromInput() {
+            function generatePuzzleFromInput(n) {
                 const puzzleString = inputPuzzle.value.trim();
                 const rows = puzzleString.split("\n");
                 const puzzle = rows.map(row => row.split(',').map(Number));
                 return puzzle;
             }
 
-            function solveSudoku(board) {
+            function solveSudoku(board, n) {
                 const solvedPuzzle = JSON.parse(JSON.stringify(board));
-                solveHelper(solvedPuzzle);
+                solveHelper(solvedPuzzle, n);
                 return solvedPuzzle;
             }
 
-            function solveHelper(board) {
-                const emptyCell = findEmptyCell(board);
+            function solveHelper(board, n) {
+                const emptyCell = findEmptyCell(board, n);
                 if (!emptyCell) {
                     return true;
                 }
 
                 const [row, col] = emptyCell;
-                for (let num = 1; num <= 9; num++) {
-                    if (isValidMove(board, row, col, num)) {
+                for (let num = 1; num <= n; num++) {
+                    if (isValidMove(board, row, col, num, n)) {
                         board[row][col] = num;
-                        if (solveHelper(board)) {
+                        if (solveHelper(board, n)) {
                             return true;
                         }
                         board[row][col] = 0;
@@ -128,9 +130,9 @@
                 return false;
             }
 
-            function findEmptyCell(board) {
-                for (let row = 0; row < 9; row++) {
-                    for (let col = 0; col < 9; col++) {
+            function findEmptyCell(board, n) {
+                for (let row = 0; row < n; row++) {
+                    for (let col = 0; col < n; col++) {
                         if (board[row][col] === 0) {
                             return [row, col];
                         }
@@ -139,16 +141,17 @@
                 return null;
             }
 
-            function isValidMove(board, row, col, num) {
-                for (let i = 0; i < 9; i++) {
+            function isValidMove(board, row, col, num, n) {
+                for (let i = 0; i < n; i++) {
                     if (board[row][i] === num || board[i][col] === num) {
                         return false;
                     }
                 }
-                const startRow = Math.floor(row / 3) * 3;
-                const startCol = Math.floor(col / 3) * 3;
-                for (let i = startRow; i < startRow + 3; i++) {
-                    for (let j = startCol; j < startCol + 3; j++) {
+                const subgridSize = Math.sqrt(n);
+                const startRow = Math.floor(row / subgridSize) * subgridSize;
+                const startCol = Math.floor(col / subgridSize) * subgridSize;
+                for (let i = startRow; i < startRow + subgridSize; i++) {
+                    for (let j = startCol; j < startCol + subgridSize; j++) {
                         if (board[i][j] === num) {
                             return false;
                         }
@@ -157,7 +160,7 @@
                 return true;
             }
 
-            function createSudokuGrid(puzzle) {
+            function createSudokuGrid(puzzle, n) {
                 container.innerHTML = '';
                 puzzle.forEach((row, rowIndex) => {
                     const rowElement = document.createElement('div');
@@ -177,11 +180,12 @@
 
             let puzzle = [];
             let solvedPuzzle = [];
+            let n = 9;
 
             function solvePuzzle() {
-                puzzle = getUserInputPuzzle();
-                solvedPuzzle = solveSudoku(puzzle);
-                createSudokuGrid(solvedPuzzle);
+                puzzle = getUserInputPuzzle(n);
+                solvedPuzzle = solveSudoku(puzzle, n);
+                createSudokuGrid(solvedPuzzle, n);
             }
 
             function resetPuzzle() {
@@ -190,13 +194,13 @@
                 container.innerHTML = '';
             }
 
-            function getUserInputPuzzle() {
+            function getUserInputPuzzle(n) {
                 const cells = document.querySelectorAll('.cell');
                 let puzzle = [];
                 let row = [];
                 cells.forEach((cell, index) => {
                     row.push(Number(cell.value) || 0);
-                    if ((index + 1) % 9 === 0) {
+                    if ((index + 1) % n === 0) {
                         puzzle.push(row);
                         row = [];
                     }
@@ -205,8 +209,13 @@
             }
 
             document.getElementById("generateButton").addEventListener("click", () => {
-                puzzle = generatePuzzleFromInput();
-                createSudokuGrid(puzzle);
+                n = Number(gridSizeInput.value);
+                if (isNaN(n) || n <= 0 || Math.sqrt(n) % 1 !== 0) {
+                    alert("Please enter a valid grid size (perfect square).");
+                    return;
+                }
+                puzzle = generatePuzzleFromInput(n);
+                createSudokuGrid(puzzle, n);
             });
 
             document.getElementById("solveButton").addEventListener("click", solvePuzzle);
@@ -217,3 +226,5 @@
 </body>
 
 </html>
+
+
